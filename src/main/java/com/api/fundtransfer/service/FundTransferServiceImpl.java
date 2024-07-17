@@ -46,7 +46,6 @@ public class FundTransferServiceImpl implements FundTransferService {
      * @throws BalanceNotSufficientException if the balance of the debit account is not sufficient
      */
     @Override
-    //@Transactional
     public synchronized void transferFunds(FundTransferRequest fundTransferRequest) {
         if (fundTransferRequest.getAccountFromId() == fundTransferRequest.getAccountToId()) {
             throw new SimilarAccountException(SIMILAR_ACCOUNT_EXCEPTION);
@@ -73,17 +72,18 @@ public class FundTransferServiceImpl implements FundTransferService {
             // Save the updated balances of both accounts and record the fund transfer transaction
             accountRepository.save(fromAccount);
             accountRepository.save(toAccount);
+            fundTransferRepository.save(FundTransferMapper.INSTANCE.dTOToEntity(fundTransferRequest));
         }
 
-        fundTransferRepository.save(FundTransferMapper.INSTANCE.dTOToEntity(fundTransferRequest));
-
-        // Log the successful completion of the fund transfer
         logger.info(TRANSFER_SUCCESS);
     }
-
+    /**
+     *  Get the exchange rate between the currencies of the debit and credit accounts.
+     *
+     * @return Exchange rate
+     **/
     private BigDecimal getExchangeRate(Account fromAccount, Account toAccount) {
         BigDecimal exchangeRate;
-        // Get the exchange rate between the currencies of the debit and credit accounts
         if (fromAccount.getCurrency().equalsIgnoreCase(toAccount.getCurrency())) {
             exchangeRate = BigDecimal.valueOf(1);
         } else {
@@ -99,7 +99,7 @@ public class FundTransferServiceImpl implements FundTransferService {
      */
     @Override
     public List<FundTransferResponse> getTransactions() {
-        // Retrieve all fund transfer entities from the repository and map them to response DTOs
+
         return fundTransferRepository.findAll().stream()
                 .map(FundTransferMapper.INSTANCE::entityToDTO)
                 .collect(Collectors.toList());
